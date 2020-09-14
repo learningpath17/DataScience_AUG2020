@@ -1,21 +1,17 @@
 import pandas as pd
-from sklearn import tree
-import pydot
-import io
-from sklearn import preprocessing
+import os
+from sklearn import neighbors
+from sklearn import preprocessing, model_selection
 from sklearn.impute import SimpleImputer # inplace of preprocessing Impute we can use SimpleImputer.
 #from sklearn_pandas import CategoricalImputer
-import os
-#import sklearn
+
 os.chdir("C:/Venkat/Personal/Trainings/Datasets/")
 
-#print(sklearn.__version__)
 #creation of data frames from csv
 titanic_train = pd.read_csv("Titanic_train.csv")
 print(titanic_train.info())
 
 #preprocessing stage
-
 #The SimpleImputer class is for continues numerical values, but also supports categorical data represented 
 #as string values or pandas categoricals when using the 'most_frequent' or 'constant' strategy:
 #SimpleImputer(strategy="most_frequent")
@@ -46,40 +42,54 @@ le_sex.fit(titanic_train['Sex'])
 print(le_sex.classes_)
 titanic_train['Sex'] = le_sex.transform(titanic_train['Sex'])
 
-features = ['Pclass', 'Parch' , 'SibSp', 'Age', 'Fare', 'Embarked', 'Sex']
-X_train = titanic_train[features]
+le_pclass = preprocessing.LabelEncoder()
+le_pclass.fit(titanic_train['Pclass'])
+print(le_pclass.classes_)
+titanic_train['Pclass'] = le_pclass.transform(titanic_train['Pclass'])
+
+categorical_features = ['Pclass', 'Sex', 'Embarked']
+ohe = preprocessing.OneHotEncoder()
+ohe.fit(titanic_train[categorical_features])
+#print(ohe.n_values_)
+tmp1 = ohe.transform(titanic_train[categorical_features]).toarray()
+tmp1 = pd.DataFrame(tmp1)
+
+continuous_features = ['Fare', 'Age', 'SibSp', 'Parch']
+tmp2 = titanic_train[continuous_features]
+
+tmp = pd.concat([tmp1, tmp2], axis=1)
+
+scaler = preprocessing.StandardScaler() # standardizes a feature by subtracting the mean and then scaling to unit variance. Unit variance means dividing all the values by the standard deviation
+X_train = scaler.fit_transform(tmp)
+#type(X_train)
 y_train = titanic_train['Survived']
-#create an instance of decision tree classifier type
-classifer = tree.DecisionTreeClassifier()
-#learn the pattern automatically
-classifer.fit(X_train, y_train)
 
-#get the logic or model learned by Algorithm
-#issue: not readable
-print(classifer.tree_)
+knn_estimator = neighbors.KNeighborsClassifier()
+knn_grid = {'n_neighbors':[5,7,8,10,20], 'weights':['uniform','distance']}
+knn_grid_estimator = model_selection.GridSearchCV(knn_estimator, knn_grid, cv=10, return_train_score=True)
+knn_grid_estimator.fit(X_train, y_train)
 
-os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets\\Submissions")
-#get the readable tree structure from tree_ object
-#visualize the deciion tree
-dot_data = io.StringIO() 
-tree.export_graphviz(classifer, out_file = dot_data, feature_names = X_train.columns)
-graph = pydot.graph_from_dot_data(dot_data.getvalue())[0] 
-graph.write_pdf("tree_02.pdf")
+print(knn_grid_estimator.best_score_)
+print(knn_grid_estimator.best_params_)
+results = knn_grid_estimator.cv_results_
+final_estimator = knn_grid_estimator.best_estimator_
+print(final_estimator.score(X_train, y_train))
 
 #read test data
-os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets")
-
 titanic_test = pd.read_csv("Titanic_test.csv")
 print(titanic_test.info())
 
 titanic_test[imputable_cont_features] = cont_imputer.transform(titanic_test[imputable_cont_features])
 titanic_test['Embarked'] = cat_imputer.transform(titanic_test['Embarked'])
 titanic_test['Embarked'] = le_embarked.transform(titanic_test['Embarked'])
-titanic_test['Sex'] = cat_imputer.transform(titanic_test['Sex'])
 titanic_test['Sex'] = le_sex.transform(titanic_test['Sex'])
+titanic_test['Pclass'] = le_pclass.transform(titanic_test['Pclass'])
+tmp1 = ohe.transform(titanic_test[categorical_features]).toarray()
+tmp1 = pd.DataFrame(tmp1)
+tmp2 = titanic_test[continuous_features]
+tmp = pd.concat([tmp1, tmp2], axis=1)
 
-X_test = titanic_test[features]
-titanic_test['Survived'] = classifer.predict(X_test)
-os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets\\Submissions")
-
-titanic_test.to_csv("submission_tree_02.csv", columns=["PassengerId", "Survived"], index=False)
+X_test = scaler.transform(tmp)
+titanic_test['Survived'] = final_estimator.predict(X_test)
+os.chdir('C:/Venkat/Personal/Trainings/Datasets/Submissions')
+titanic_test.to_csv("submission_knn_03.csv", columns=["PassengerId", "Survived"], index=False)

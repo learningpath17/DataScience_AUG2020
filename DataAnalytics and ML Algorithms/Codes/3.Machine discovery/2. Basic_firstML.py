@@ -3,8 +3,9 @@ from sklearn import tree
 import pydot
 import io
 import os
-
-os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets")
+#os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
+#Install GraphViz with conda install graphviz.
+os.chdir("C:/Venkat/Personal/Trainings/Datasets/")
 #creation of data frames from csv
 titanic_train = pd.read_csv('Titanic_train.csv')
 print(titanic_train.info())
@@ -20,12 +21,13 @@ print(type(classifer))
 
 #learn the pattern automatically
 classifer.fit(X_train, y_train)
+#classifer.score(X_train, y_train)
 
 #get the logic or model learned by Algorithm
 #issue: not readable
 print(classifer.tree_)
 
-os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets\\Submissions")
+#os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets\\Submissions")
 #get the readable tree structure from tree_ object
 #visualize the deciion tree
 dot_data = io.StringIO() 
@@ -34,10 +36,9 @@ graph = pydot.graph_from_dot_data(dot_data.getvalue())[0]
 graph.write_pdf("tree_01.pdf")
 
 #read test data
-os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets")
 titanic_test = pd.read_csv("Titanic_test.csv")
 print(titanic_test.info())
 X_test = titanic_test[features]
 titanic_test['Survived'] = classifer.predict(X_test)
-os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets\\Submissions")
+#os.chdir("C:\\Users\\vesuraju\\OneDrive - DXC Production\\Venkat\\Personal\\Trainings\\ML\\Classes_Year 2020\\Codes_2020\\Datasets\\Submissions")
 titanic_test.to_csv("submission_tree_01.csv", columns=["PassengerId", "Survived"], index=False)
